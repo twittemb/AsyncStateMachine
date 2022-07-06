@@ -1,0 +1,14 @@
+{
+  "pins" : [
+    {
+      "identity" : "xctest-dynamic-overlay",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/xctest-dynamic-overlay.git",
+      "state" : {
+        "revision" : "ef8e14e7ce1c0c304c644c6ba365d06c468ded6b",
+        "version" : "0.3.3"
+      }
+    }
+  ],
+  "version" : 2
+}

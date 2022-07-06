@@ -6,7 +6,7 @@
 //
 
 @testable import AsyncStateMachine
-import XCTest
+@preconcurrency import XCTest
 
 final class RuntimeTests: XCTestCase {
   enum State: DSLCompatible, Equatable {

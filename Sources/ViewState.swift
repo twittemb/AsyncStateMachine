@@ -14,7 +14,7 @@ where S: DSLCompatible & Equatable, E: DSLCompatible, O: DSLCompatible {
 
   let asyncStateMachineSequence: AsyncStateMachineSequence<S, E, O>
 
-  public init(_ asyncStateMachineSequence: AsyncStateMachineSequence<S, E, O>) {
+  public init(asyncStateMachineSequence: AsyncStateMachineSequence<S, E, O>) {
     self.asyncStateMachineSequence = asyncStateMachineSequence
     self.state = self.asyncStateMachineSequence.initialState
   }
@@ -29,9 +29,10 @@ where S: DSLCompatible & Equatable, E: DSLCompatible, O: DSLCompatible {
   ) async {
     await withUnsafeContinuation { [asyncStateMachineSequence] (continuation: UnsafeContinuation<Void, Never>) in
       Task {
-        await asyncStateMachineSequence.executor.register(temporaryMiddleware: { state in
+        await asyncStateMachineSequence.engine.register(onTheFly: { state in
           if predicate(state) {
             continuation.resume()
+            // middleware will be unregistered after the predicate has been matched
             return true
           }
           return false

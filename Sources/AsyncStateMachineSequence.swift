@@ -5,30 +5,30 @@ where S: DSLCompatible & Sendable, E: DSLCompatible & Sendable, O: DSLCompatible
   public typealias Element = S
   public typealias AsyncIterator = Iterator
 
-  let executor: Executor<S, E, O>
+  let engine: Engine<S, E, O>
   let initialState: S
 
   public init(
     stateMachine: StateMachine<S, E, O>,
     runtime: Runtime<S, E, O>
   ) {
-    self.executor = Executor(stateMachine: stateMachine, runtime: runtime)
+    self.engine = Engine(stateMachine: stateMachine, runtime: runtime)
     self.initialState = stateMachine.initial
   }
 
   public func send(_ event: E) async {
-    await self.executor.sendEvent(event)
+    await self.engine.sendEvent(event)
   }
 
   public func makeAsyncIterator() -> Iterator {
-    Iterator(executor: self.executor)
+    Iterator(executor: self.engine)
   }
 
   public struct Iterator: AsyncIteratorProtocol {
     var currentState: S?
-    let executor: Executor<S, E, O>
+    let executor: Engine<S, E, O>
 
-    init(executor: Executor<S, E, O>) {
+    init(executor: Engine<S, E, O>) {
       self.executor = executor
     }
 

@@ -28,6 +28,8 @@ import Foundation
 /// ```
 public protocol DSLCompatible {}
 
+struct NotAnEnumError: Error {}
+
 public extension DSLCompatible {
   /// if Self is an enum: returns the label of the case
   /// if Self is a type with some properties: returns the label of the first property
@@ -100,9 +102,11 @@ public extension DSLCompatible {
 }
 
 extension DSLCompatible {
-  func decompose<AssociatedValue>(expecting: AssociatedValue.Type) -> (path: [String?], associatedValue: AssociatedValue)? {
+  func decompose<AssociatedValue>(
+    expecting: AssociatedValue.Type
+  ) -> (path: [String?], associatedValue: AssociatedValue)? {
     let mirror = Mirror(reflecting: self)
-    assert(mirror.displayStyle == .enum, "These DSLCompatible conformance should be used exclusively for enums")
+
     guard mirror.displayStyle == .enum else { return nil }
 
     var path: [String?] = []

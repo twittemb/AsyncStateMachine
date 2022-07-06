@@ -6,7 +6,7 @@
 //
 
 @testable import AsyncStateMachine
-import XCTest
+@preconcurrency import XCTest
 
 final class AsyncJustSequenceTests: XCTestCase {
   func test_init_sets_element() async {

@@ -1,5 +1,5 @@
 //
-//  Executor.swift
+//  Engine.swift
 //  
 //
 //  Created by Thibault WITTEMBERG on 25/06/2022.
@@ -10,7 +10,7 @@ struct TaskInProgress<S> {
   let task: Task<Void, Never>
 }
 
-actor Executor<S, E, O>: Sendable
+actor Engine<S, E, O>: Sendable
 where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
   let resolveInitialState: @Sendable () -> S
   let resolveOutput: @Sendable (S) -> O?
@@ -148,10 +148,8 @@ where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
     middlewares.forEach { (index, middleware) in
       let task: Task<Void, Never> = Task(priority: middleware.priority) {
         let shouldRemove = await middleware.execute(value)
-        print("execute \(index) has finished")
         if shouldRemove {
           await removeMiddleware(index)
-          print("removed \(index)")
         }
       }
 
@@ -165,11 +163,12 @@ where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
     return removeTaskInProgressTasks
   }
 
-  func executeSideEffect(for state: S) async {
+  @discardableResult
+  func executeSideEffect(for state: S) async -> Task<Void, Never>? {
     guard
       let output = self.resolveOutput(state),
       let sideEffect = self.resolveSideEffect(output),
-      let events = sideEffect.execute(output) else { return }
+      let events = sideEffect.execute(output) else { return nil }
 
     let task: Task<Void, Never> = Task(priority: sideEffect.priority) { [weak self] in
       do {
@@ -183,15 +182,15 @@ where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
       }
     }
 
-    self.register(
+    return self.register(
       taskInProgress: task,
       cancelOn: sideEffect.strategy.predicate
     )
   }
 
-  func register(temporaryMiddleware: @Sendable @escaping (S) async -> Bool) {
+  func register(onTheFly execute: @Sendable @escaping (S) async -> Bool) {
     self.stateMiddlewares.append(
-      Middleware<S>(execute: temporaryMiddleware, priority: nil)
+      Middleware<S>(execute: execute, priority: nil)
     )
   }
 

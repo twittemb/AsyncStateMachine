@@ -108,4 +108,15 @@ final class DSLCompatibleTests: XCTestCase {
     XCTAssertEqual(received?.path, expected.path)
     XCTAssertEqual(received?.associatedValue, expected.associatedValue)
   }
+
+  func test_decompose_returns_nil_when_not_an_enum() {
+    struct NotAnEnum: DSLCompatible {}
+
+    // Given
+    let sut = NotAnEnum()
+
+    // When
+    // Then
+    XCTAssertNil(sut.decompose(expecting: String.self))
+  }
 }
