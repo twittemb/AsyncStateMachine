@@ -5,13 +5,26 @@
 //  Created by Thibault WITTEMBERG on 25/06/2022.
 //
 
+final class PipeReceiver<E>: Sendable
+where E: DSLCompatible {
+  typealias Receiver = @Sendable (E) async -> Void
+  let receiver = ManagedCriticalState<Receiver?>(nil)
+
+  func receive(_ event: E) async {
+    await self.receiver.criticalState?(event)
+  }
+
+  func update(receiver: Receiver?) {
+    self.receiver.apply(criticalState: receiver)
+  }
+}
+
 public struct Runtime<S, E, O>: Sendable
 where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
   var sideEffects = [SideEffect<S, E, O>]()
   var stateMiddlewares = [Middleware<S>]()
   var eventMiddlewares = [Middleware<E>]()
-
-  let eventChannel = AsyncChannel<E>()
+  var pipeReceivers = [PipeReceiver<E>]()
 
   public init() {}
 
@@ -161,10 +174,15 @@ where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
   public func connectAsReceiver(
     to pipe: Pipe<E>
   ) -> Self {
-    pipe.register { [eventChannel] event in
-      await eventChannel.send(event)
+    var mutableSelf = self
+
+    let pipeReceiver = PipeReceiver<E>()
+    pipe.register { event in
+      await pipeReceiver.receive(event)
     }
-    return self
+    mutableSelf.pipeReceivers.append(pipeReceiver)
+
+    return mutableSelf
   }
 
   @discardableResult

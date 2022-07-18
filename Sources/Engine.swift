@@ -12,55 +12,30 @@ struct TaskInProgress<S> {
 
 actor Engine<S, E, O>: Sendable
 where S: DSLCompatible, E: DSLCompatible & Sendable, O: DSLCompatible {
-  let resolveInitialState: @Sendable () -> S
   let resolveOutput: @Sendable (S) -> O?
   let computeNextState: @Sendable (S, E) async -> S?
   let resolveSideEffect: @Sendable (O) -> SideEffect<S, E, O>?
-
-  let sendEvent: (E) async -> Void
-  let getEvent: () async -> E?
+  let sendEvent: @Sendable (E) async -> Void
 
   var eventMiddlewares: OrderedStorage<Middleware<E>>
   var stateMiddlewares: OrderedStorage<Middleware<S>>
   var tasksInProgress: OrderedStorage<TaskInProgress<S>>
 
   init(
-    resolveInitialState: @Sendable @escaping () -> S,
     resolveOutput: @Sendable @escaping (S) -> O?,
     computeNextState: @Sendable @escaping (S, E) async -> S?,
     resolveSideEffect: @Sendable @escaping (O) -> SideEffect<S, E, O>?,
-    sendEvent: @escaping (E) async -> Void,
-    getEvent: @escaping () async -> E?,
+    sendEvent: @Sendable @escaping (E) async -> Void,
     eventMiddlewares: [Middleware<E>],
     stateMiddlewares: [Middleware<S>]
   ) {
-    self.resolveInitialState = resolveInitialState
     self.resolveOutput = resolveOutput
     self.computeNextState = computeNextState
     self.resolveSideEffect = resolveSideEffect
     self.sendEvent = sendEvent
-    self.getEvent = getEvent
     self.stateMiddlewares = OrderedStorage(contentOf: stateMiddlewares)
     self.eventMiddlewares = OrderedStorage(contentOf: eventMiddlewares)
     self.tasksInProgress = OrderedStorage()
-  }
-
-  convenience init(
-    stateMachine: StateMachine<S, E, O>,
-    runtime: Runtime<S, E, O>
-  ) {
-    var eventIterator = runtime.eventChannel.makeAsyncIterator()
-
-    self.init(
-      resolveInitialState: { stateMachine.initial },
-      resolveOutput: stateMachine.output(for:),
-      computeNextState: stateMachine.reduce(when:on:),
-      resolveSideEffect: runtime.sideEffects(for:),
-      sendEvent: { await runtime.eventChannel.send($0) },
-      getEvent: { await eventIterator.next() },
-      eventMiddlewares: runtime.eventMiddlewares,
-      stateMiddlewares: runtime.stateMiddlewares
-    )
   }
 
   @discardableResult
